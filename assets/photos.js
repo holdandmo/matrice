@@ -1,5 +1,5 @@
 // Photos de référence : emplacements, pastilles, galerie, ajout / remplacement (Supabase Storage).
-import { sb, $, esc, ROOT } from './core.js?v=5';
+import { sb, $, esc, ROOT } from './core.js?v=6';
 
 const BUCKET = 'studio-photos';
 export const CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>';
@@ -68,7 +68,7 @@ function mountGallery() {
   gal = $('gal'); frame = $('frame'); fileIn = $('file');
 
   document.addEventListener('click', (e) => {
-    if (e.target.closest('.ck,select')) return;
+    if (e.target.closest('.ck,select,[contenteditable],.tx-del,.ed-btn,.ed-add')) return;
     const c = e.target.closest('.chip,.thumb,li.ph-link,.key.link'); if (c) { openGal(c.dataset.ids.split(','), c.dataset.title); return; }
     const k = e.target.closest('#strip button'); if (k) { G.i = +k.dataset.k; G.msg = ''; drawGal(); return; }
     if (e.target.closest('#pick')) { fileIn.value = ''; fileIn.click(); return; }

@@ -1,6 +1,6 @@
 // Socle commun : client Supabase, connexion, navigation, utilitaires.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=5';
+import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=6';
 
 export const sb = window.__SB_MOCK__ || createClient(SUPABASE_URL, SUPABASE_KEY);
 export const ROOT = document.body.dataset.root || './';
@@ -14,7 +14,7 @@ export const fmtDT = (ts) => new Date(ts).toLocaleString('fr-FR', { day: 'numeri
 const NAV = [
   ['home', 'Accueil', ''],
   ['process', 'Internal process', 'process/'],
-  ['historique', 'Historique', 'historique/'],
+  ['historique', 'Historique', 'historique/', true],
   ['admin', 'Admin', 'admin/', true],
 ];
 

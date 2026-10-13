@@ -4,20 +4,28 @@ Site statique (HTML, CSS, JavaScript, sans étape de construction) branché sur 
 
 ## Pages
 
-| Page | Adresse | Contenu |
-|---|---|---|
-| Accueil | `/` | Tâches du jour : listes de rangement Studios A et B et Playback Solutions (cases Soir / Matin), tâches de la semaine selon le jour, infos clés avec photos |
-| Internal process | `/process/` | Procédure d’ouverture et de fermeture expliquée, photos de référence. Chacun coche chaque partie lue puis valide : « J’ai lu, compris et je m’engage à respecter » |
-| Historique | `/historique/` | Chaque cycle soir → matin, coché ou non, avec les noms |
-| Admin | `/admin/` | Réservé à l’administrateur : qui a lu et validé quelle version, état des comptes, publication d’une nouvelle version du process |
+| Page | Adresse | Qui | Contenu |
+|---|---|---|---|
+| Accueil | `/` | tous | Tâches du jour (une case par tâche) et listes de rangement Studios A et B / Playback Solutions (cases Soir et Matin) |
+| Internal process | `/process/` | tous | Procédure d’ouverture et de fermeture, photos. Lecture par partie puis validation « lu, compris, je m’engage à respecter » |
+| Historique | `/historique/` | admin | Qui a coché quoi et quand, tâches faites ou non, journal de toutes les coches **et décoches** |
+| Admin | `/admin/` | admin | Lectures validées, état des comptes, nouvelle version du process |
 
-## Fonctionnement de la liste du jour
+Une cloche en haut à droite signale les notifications non lues (process à lire et valider).
 
-- Un **cycle** = soir du jour J (fermeture) → matin du prochain jour ouvré (ouverture). Vendredi soir → lundi matin.
-- La première case cochée d’une liste met automatiquement le nom de la personne connectée dans « Fait par » (modifiable).
-- Quand toutes les cases et tous les noms sont remplis, le cycle est clôturé « Terminé » et la liste repart à zéro pour le soir.
-- Un cycle non terminé est clôturé « Incomplet » le lendemain : rien n’est perdu, l’historique montre ce qui n’a pas été coché.
-- Tâches de la semaine : poubelles (lun, mer, ven matin), recyclage (mardi matin), désodorisant (mar et ven matin), courses de l’espace commun (mardi, dans la journée).
+## Fonctionnement
+
+- Chaque case enregistre le compte qui l’a cochée. Une décoche est aussi enregistrée (journal), pour repérer les erreurs.
+- **Listes de rangement** : un cycle = soir du jour J → matin du prochain jour ouvré (vendredi soir → lundi matin). Quand tout est coché, le cycle est clôturé et la liste repart à zéro ; un cycle oublié est clôturé « Incomplet » le lendemain.
+- **Tâches du jour** : selon le jour de la semaine (poubelles lun/mer/ven matin, recyclage mardi matin, désodorisant bureau et studio mar/ven matin, mise à jour de la liste de courses et courses le mardi dans la journée).
+
+## Modifier le contenu (administrateur)
+
+Bouton **« Modifier la page »** en haut à droite (Accueil et Internal process) :
+- cliquer sur un texte pour le corriger (Entrée pour valider) ; × pour masquer une ligne, ↺ pour la réafficher ;
+- listes de rangement et tâches : modifier, supprimer, monter/descendre, ajouter (jours et moment pour une tâche) — appliqué dès aujourd’hui et pour la suite, l’historique ne change pas ;
+- étapes d’ouverture / fermeture : modifier le texte, la précision, l’alerte, supprimer, déplacer, ajouter.
+Le code de la porte s’écrit `{door_code}` dans une étape ; sa valeur est dans la table `studio_info` (clé `door_code`).
 
 ## Organisation du code
 
@@ -26,7 +34,9 @@ index.html, process/, historique/, admin/   pages
 assets/config.js       URL Supabase + clé publique
 assets/core.js         client Supabase, connexion, 1re connexion (nouveau mot de passe), navigation
 assets/photos.js       photos de référence, galerie, ajout / remplacement (Supabase Storage)
-assets/checklist.js    liste du jour (cycles, cases, « Fait par »)
+assets/checklist.js    listes de rangement soir / matin
+assets/daytasks.js     tâches du jour
+assets/edit.js         mode édition (admin)
 assets/procedure.js    contenu de l’Internal process (étapes d’ouverture / fermeture, planning)
 assets/pages/*.js      script de chaque page
 assets/photos/         photos d’origine
@@ -35,7 +45,7 @@ supabase/migrations/   schéma de la base, dans l’ordre (déjà appliqué)
 
 ## Supabase
 
-Tables : `team_members` (nom, e-mail, compte, rôle `member`/`admin`), `studio_items`, `studio_cycles`, `studio_checks`, `studio_signs`, `studio_photos`, `process_versions`, `process_acks`.
+Tables : `team_members` (nom, e-mail, compte, rôle `member`/`admin`), `studio_items` (points et tâches), `studio_cycles`, `studio_checks`, `studio_days`, `studio_day_checks`, `check_log` (journal), `process_steps`, `site_texts`, `studio_info`, `studio_photos`, `process_versions`, `process_acks`.
 Vues : `studio_history_items` (une ligne par point attendu et par cycle, coché ou non), `process_read_status` (lecture du process, visible par l’admin seulement).
 Stockage : bucket privé `studio-photos`.
 

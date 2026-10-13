@@ -276,7 +276,8 @@ body:has(.site-top:not([hidden])){padding-top:0}
 .today{border:1px solid var(--rule);border-radius:4px;padding:12px 16px;margin:0 0 16px}
 .today-h{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
 .today-h b{font:700 16px/1.2 var(--f-display)}
-.today-h span{color:var(--muted);font-size:13px;text-transform:capitalize}
+.today-h span{color:var(--muted);font-size:13px}
+.today-h span.date::first-letter{text-transform:uppercase}
 .today-h em{margin-left:auto;font-style:normal;font:600 12px/1 var(--f-body);color:var(--muted);font-variant-numeric:tabular-nums}
 .today-list{list-style:none;margin:0;padding:0}
 .today-list li{display:grid;grid-template-columns:30px 1fr auto;grid-template-areas:"ck lbl when" "ck by by";gap:0 10px;align-items:center;padding:7px 0;border-top:1px solid var(--rule)}
@@ -304,3 +305,31 @@ body:has(.site-top:not([hidden])){padding-top:0}
 .notif a small{color:var(--muted)}
 .notif a.unread{border-left:3px solid var(--warn)}
 .notif p{margin:8px 10px 10px;color:var(--muted);font-size:13px}
+
+/* ---- mode édition */
+.nav-in .who .edit-toggle{text-decoration:none;padding:7px 12px}
+.edit-toggle{border:1.5px solid var(--ink);background:var(--sheet);color:var(--ink);border-radius:999px;padding:6px 12px;font:600 12px/1 var(--f-body);cursor:pointer}
+body.editing .nav-in .who .edit-toggle,body.editing .edit-toggle{background:var(--day);border-color:var(--day);color:#fff}
+body.editing .sheet{outline:2px dashed var(--day);outline-offset:6px}
+.tx{position:relative}
+[contenteditable]{outline:1px dashed color-mix(in srgb,var(--day) 60%,transparent);outline-offset:2px;border-radius:2px;cursor:text}
+[contenteditable]:focus{outline:2px solid var(--day);background:var(--day-soft)}
+.tx-del,.ed-btn{border:0;background:var(--chip);color:var(--chip-ink);width:22px;height:22px;border-radius:50%;font:700 13px/1 var(--f-body);cursor:pointer;margin-left:6px;vertical-align:1px;display:inline-grid;place-items:center;padding:0}
+.tx-del:hover,.ed-btn:hover{background:var(--warn);color:#fff}
+.ed-btn.mv:hover{background:var(--ink)}
+.tx-hidden > [data-k]{text-decoration:line-through;opacity:.45}
+.ed-tools{display:inline-flex;gap:2px;margin-left:6px;vertical-align:middle}
+.ed-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.ed-add input[type=text]{flex:1;min-width:180px;font:500 13px/1 var(--f-body);padding:7px 9px;border-radius:4px;border:1.5px dashed var(--day);background:var(--sheet);color:var(--ink)}
+.ed-add select{font:500 13px/1 var(--f-body);padding:6px;border-radius:4px;border:1.5px solid var(--rule);background:var(--sheet);color:var(--ink)}
+.ed-add .days{display:flex;gap:4px}
+.ed-add .days label{font-size:12px;display:flex;align-items:center;gap:2px}
+.ed-add button{border:0;border-radius:4px;padding:7px 12px;font:700 12.5px/1 var(--f-body);background:var(--day);color:#fff;cursor:pointer}
+.ed-note{font-size:12px;color:var(--day);margin:4px 0 0}
+.hist .mini{width:100%;min-width:0;font-size:12px}
+.hist .mini td{border-bottom:1px solid var(--rule);padding:4px 6px;background:transparent}
+.hist .yes{color:var(--open);font-weight:600}
+.hist tr.undo td{background:var(--warn-soft)}
+.hist td small{color:var(--muted)}
+.hist .filter{display:flex;gap:8px;align-items:center;font-size:13px;margin:0 0 8px;color:var(--muted)}
+.lbl-ed{display:inline}

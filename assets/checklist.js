@@ -1,121 +1,130 @@
-// Liste du jour : cycle soir → matin, cases, « Fait par », tâches de la semaine.
-import { sb, $, esc, fmt, fmtDT } from './core.js?v=5';
-import { chip, GROUPS } from './photos.js?v=5';
+// Listes de rangement : cycle soir → matin. Chaque coche garde le compte qui l'a faite.
+// En mode édition (admin) : modifier, supprimer, déplacer, ajouter des points (effet : aujourd'hui et la suite).
+import { sb, $, esc, fmt } from './core.js?v=6';
+import { chip, GROUPS } from './photos.js?v=6';
+import { isEditing, onEditChange, T } from './edit.js?v=6';
 
 const TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const META = {
   studios: { cls: 's', title: 'Studios A et B', chip: 'studios', chipTitle: 'Studios A, B et SAS' },
   playback: { cls: 'b', title: 'Playback Solutions', chip: 'bureau', chipTitle: 'Bureau Playback rangé' },
-  tasks: { cls: 't', title: 'Tâches du jour' },
 };
-const C = { me: null, cycle: null, items: {}, team: [], names: {}, checks: new Map(), signs: {}, note: '', busy: new Set() };
+const C = { me: null, cycle: null, items: {}, checks: new Set(), note: '', busy: new Set() };
 
 const expected = () => (C.cycle?.expected || []).filter((e) => C.items[e.item]);
 function progress(ph) {
   const exp = expected().filter((e) => e.phase === ph);
-  const lists = [...new Set(exp.map((e) => C.items[e.item].list))];
   const nb = exp.filter((e) => C.checks.has(`${ph}|${e.item}`)).length;
-  const ns = lists.filter((l) => C.signs[`${ph}|${l}`]).length;
-  return { nb, tb: exp.length, ns, ts: lists.length, done: nb === exp.length && ns === lists.length };
+  return { nb, tb: exp.length, done: nb === exp.length };
 }
-function box(ph, id, label) {
-  const c = C.checks.get(`${ph}|${id}`);
-  const tip = c ? ` title="Coché${c.by && C.names[c.by] ? ' par ' + esc(C.names[c.by]) : ''} · ${fmtDT(c.at)}"` : '';
-  return `<button class="ck" role="checkbox" aria-checked="${!!c}" data-ck="${ph}|${id}" aria-label="${esc(label)} : ${ph}"${tip}>${TICK}</button>`;
-}
-function signSel(ph, list) {
-  const v = C.signs[`${ph}|${list}`] || '';
-  return `<label>${ph === 'soir' ? 'Soir' : 'Matin'} <select data-sign="${ph}|${list}" class="${v ? 'ok' : 'need'}" aria-label="Fait par (${ph})"><option value="">Fait par…</option>${C.team.map((m) => `<option value="${m.id}"${m.id === v ? ' selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>`;
-}
+const box = (ph, id, label) => `<button class="ck" role="checkbox" aria-checked="${C.checks.has(`${ph}|${id}`)}" data-ck="${ph}|${id}" aria-label="${esc(label)} : ${ph}"${isEditing() ? ' disabled' : ''}>${TICK}</button>`;
+
 function render() {
   if (!C.cycle) return;
+  const ed = isEditing();
   const D = C.cycle.evening_date, M = C.cycle.morning_date;
   const sS = progress('soir'), sM = progress('matin');
-  const todo = !sS.done ? (sS.nb < sS.tb ? 'À cocher ce soir en fermant' : 'Indiquer qui a fait la fermeture') : !sM.done ? (sM.nb < sM.tb ? 'À cocher au matin en ouvrant' : 'Indiquer qui a fait l’ouverture') : 'Terminé';
+  const todo = !sS.done ? 'À cocher ce soir en fermant' : !sM.done ? 'À cocher au matin en ouvrant' : 'Terminé';
   $('cycle').innerHTML = `<div class="when">Soir du ${fmt(D)} → matin du ${fmt(M)}<em>${todo}</em></div><div class="prog"><span class="${sS.done ? 'done' : ''}">Soir ${sS.nb}/${sS.tb}</span><span class="${sM.done ? 'done' : ''}">Matin ${sM.nb}/${sM.tb}</span></div>${C.note ? `<p class="note">${esc(C.note)}</p>` : ''}`;
-  const exp = expected();
-  const byList = { studios: [], playback: [], tasks: [] };
-  for (const e of exp) { const it = C.items[e.item]; if (!byList[it.list].includes(it)) byList[it.list].push(it); }
+
   let html = '';
-  for (const list of ['tasks', 'studios', 'playback']) {
-    const items = byList[list].sort((a, b) => a.position - b.position); if (!items.length) continue;
+  for (const list of ['studios', 'playback']) {
     const meta = META[list];
-    const phs = ['soir', 'matin'].filter((ph) => exp.some((e) => e.phase === ph && C.items[e.item].list === list));
-    const has = (ph, id) => exp.some((e) => e.phase === ph && e.item === id);
-    const sub = list === 'tasks' ? `<small>${phs.map((ph) => (ph === 'soir' ? fmt(D) + ' (soir)' : fmt(M) + ' (matin)')).join(' · ')}</small>` : '<small>À faire à la fermeture · à vérifier à l’ouverture</small>';
-    html += `<div class="std ${meta.cls}"><h3>${meta.title}${meta.chip ? ` <span>${chip(GROUPS[meta.chip], meta.chipTitle)}</span>` : ''}</h3>${sub}<div class="hdr"><span>${list === 'tasks' ? 'Tâche' : 'Point à contrôler'}</span><span>Soir</span><span>Matin</span></div><ul>`
-      + items.map((it) => `<li class="row"><span>${esc(it.label)}${it.photo_slots?.length ? chip(it.photo_slots, it.label) : ''}${it.hint ? `<span class="tag">${esc(it.hint)}</span>` : ''}</span>${has('soir', it.id) ? box('soir', it.id, it.label) : '<span class="blank">—</span>'}${has('matin', it.id) ? box('matin', it.id, it.label) : '<span class="blank">—</span>'}</li>`).join('')
-      + `</ul><div class="signs">${phs.map((ph) => signSel(ph, list)).join('')}</div></div>`;
+    // en mode édition on montre tous les points actifs ; sinon ceux du cycle
+    const ids = ed
+      ? Object.values(C.items).filter((i) => i.list === list && i.active).sort((a, b) => a.position - b.position).map((i) => i.id)
+      : [...new Set(expected().filter((e) => C.items[e.item].list === list).map((e) => e.item))].sort((a, b) => C.items[a].position - C.items[b].position);
+    html += `<div class="std ${meta.cls}"><h3>${meta.title} <span>${chip(GROUPS[meta.chip], meta.chipTitle)}</span></h3>${T(`home.${list}.sub`, 'À faire le soir · à vérifier le matin', 'small')}<div class="hdr"><span></span><span>Soir</span><span>Matin</span></div><ul>`
+      + ids.map((id, k) => {
+        const it = C.items[id];
+        const label = ed
+          ? `<span class="lbl-ed" data-item="${id}" contenteditable="plaintext-only">${esc(it.label)}</span><span class="ed-tools">${k > 0 ? `<button type="button" class="ed-btn mv" data-mv="${id}|-1" title="Monter">↑</button>` : ''}${k < ids.length - 1 ? `<button type="button" class="ed-btn mv" data-mv="${id}|1" title="Descendre">↓</button>` : ''}<button type="button" class="ed-btn" data-rm="${id}" title="Supprimer ce point">×</button></span>`
+          : esc(it.label);
+        return `<li class="row"><span>${label}</span>${box('soir', id, it.label)}${box('matin', id, it.label)}</li>`;
+      }).join('')
+      + `</ul>${ed ? `<form class="ed-add" data-add="${list}"><input type="text" placeholder="Nouveau point à contrôler" aria-label="Nouveau point (${meta.title})" required><button type="submit">Ajouter</button></form><p class="ed-note">Les changements s’appliquent dès aujourd’hui et pour la suite.</p>` : ''}</div>`;
   }
   $('stds').innerHTML = html;
 }
 
+async function loadItems() {
+  const { data } = await sb.from('studio_items').select('*').neq('list', 'tasks');
+  C.items = {}; (data || []).forEach((i) => (C.items[i.id] = i));
+}
 async function loadCycle() {
   const { data, error } = await sb.rpc('studio_current_cycle');
-  if (error || !data) { C.note = 'Impossible de charger la liste du jour. Recharger la page.'; $('cycle').innerHTML = `<p class="note">${C.note}</p>`; return; }
+  if (error || !data) { $('cycle').innerHTML = '<p class="note">Impossible de charger la liste. Recharger la page.</p>'; return; }
   C.cycle = data; await loadMarks();
 }
 async function loadMarks() {
   if (!C.cycle) return; const id = C.cycle.id;
-  const [k, s] = await Promise.all([
-    sb.from('studio_checks').select('phase,item_id,checked_by,checked_at').eq('cycle_id', id),
-    sb.from('studio_signs').select('phase,list,member_id').eq('cycle_id', id),
-  ]);
+  const { data } = await sb.from('studio_checks').select('phase,item_id').eq('cycle_id', id);
   if (id !== C.cycle.id) return;
-  C.checks = new Map((k.data || []).map((r) => [`${r.phase}|${r.item_id}`, { by: r.checked_by, at: r.checked_at }]));
-  C.signs = {}; (s.data || []).forEach((r) => (C.signs[`${r.phase}|${r.list}`] = r.member_id));
+  C.checks = new Set((data || []).map((r) => `${r.phase}|${r.item_id}`));
   render();
 }
 async function tryComplete() {
   const before = C.cycle.id;
   const { data, error } = await sb.rpc('studio_try_complete', { p_cycle: before });
   if (error || !data) return;
-  if (data.id !== before) { C.cycle = data; C.note = 'Liste terminée et enregistrée dans l’historique. Nouvelle liste prête pour ce soir.'; await loadMarks(); }
-}
-async function setSign(key, member) {
-  const [phase, list] = key.split('|'); const cycle_id = C.cycle.id;
-  if (member) C.signs[key] = member; else delete C.signs[key];
-  const { error } = member
-    ? await sb.from('studio_signs').upsert({ cycle_id, phase, list, member_id: member, signed_at: new Date().toISOString() })
-    : await sb.from('studio_signs').delete().match({ cycle_id, phase, list });
-  return error;
+  if (data.id !== before) { C.cycle = data; C.note = 'Liste terminée et enregistrée. Nouvelle liste prête pour ce soir.'; await loadMarks(); }
 }
 async function toggle(key) {
-  if (C.busy.has(key) || !C.cycle) return;
-  const [phase, item_id] = key.split('|'); const cycle_id = C.cycle.id; const list = C.items[item_id].list;
+  if (C.busy.has(key) || !C.cycle || isEditing()) return;
+  const [phase, item_id] = key.split('|'); const cycle_id = C.cycle.id;
   C.busy.add(key); C.note = '';
   const on = C.checks.has(key);
-  if (on) C.checks.delete(key); else C.checks.set(key, { by: C.me.id, at: new Date().toISOString() });
-  // la première coche d'une liste met automatiquement le nom de la personne connectée
-  const autoSign = !on && !C.signs[`${phase}|${list}`];
-  if (autoSign) C.signs[`${phase}|${list}`] = C.me.id;
-  render();
+  on ? C.checks.delete(key) : C.checks.add(key); render();
   const { error } = on ? await sb.from('studio_checks').delete().match({ cycle_id, phase, item_id }) : await sb.from('studio_checks').insert({ cycle_id, phase, item_id });
-  if (!error && autoSign) await setSign(`${phase}|${list}`, C.me.id);
   C.busy.delete(key);
   if (error) { C.note = 'Enregistrement impossible, réessayer.'; await loadMarks(); return; }
   if (!on) await tryComplete();
 }
 
+// ---- édition des points
+async function saveItem(id, patch) { const { error } = await sb.from('studio_items').update(patch).eq('id', id); if (!error) Object.assign(C.items[id], patch); return error; }
+async function afterEdit() { await loadItems(); await loadCycle(); }
+async function move(id, dir) {
+  const it = C.items[id];
+  const list = Object.values(C.items).filter((i) => i.list === it.list && i.active).sort((a, b) => a.position - b.position);
+  const k = list.findIndex((i) => i.id === id), other = list[k + dir]; if (!other) return;
+  // renumérote proprement puis échange
+  list.forEach((i, n) => (i.position = n + 1));
+  [list[k].position, other.position] = [other.position, list[k].position];
+  for (const i of list) await sb.from('studio_items').update({ position: i.position }).eq('id', i.id);
+  await afterEdit();
+}
+
 export async function initChecklist(me) {
   C.me = me;
-  const [items, team] = await Promise.all([sb.from('studio_items').select('*').eq('active', true), sb.rpc('team_names')]);
-  (items.data || []).forEach((i) => (C.items[i.id] = i));
-  C.team = team.data || []; C.team.forEach((m) => (C.names[m.id] = m.name));
-  document.addEventListener('click', (e) => { const ck = e.target.closest('.ck'); if (ck) toggle(ck.dataset.ck); });
-  document.addEventListener('change', async (e) => {
-    const s = e.target.closest('select[data-sign]'); if (!s || !C.cycle) return;
-    C.note = ''; render();
-    const err = await setSign(s.dataset.sign, s.value);
-    if (err) { C.note = 'Enregistrement du nom impossible, réessayer.'; await loadMarks(); return; }
-    render(); if (s.value) await tryComplete();
+  await loadItems();
+  document.addEventListener('click', async (e) => {
+    const ck = e.target.closest('.ck[data-ck]'); if (ck) { toggle(ck.dataset.ck); return; }
+    const rm = e.target.closest('[data-rm]'); if (rm) { await saveItem(rm.dataset.rm, { active: false }); await afterEdit(); return; }
+    const mv = e.target.closest('[data-mv]'); if (mv) { const [id, d] = mv.dataset.mv.split('|'); await move(id, +d); }
   });
+  document.addEventListener('focusout', async (e) => {
+    const el = e.target.closest?.('[data-item][contenteditable]'); if (!el) return;
+    const id = el.dataset.item, label = el.textContent.trim();
+    if (!label || label === C.items[id]?.label) { el.textContent = C.items[id]?.label || ''; return; }
+    await saveItem(id, { label });
+  });
+  document.addEventListener('submit', async (e) => {
+    const f = e.target.closest('form[data-add]'); if (!f) return; e.preventDefault();
+    const list = f.dataset.add, label = f.querySelector('input').value.trim(); if (!label) return;
+    const pos = Math.max(0, ...Object.values(C.items).filter((i) => i.list === list).map((i) => i.position)) + 1;
+    const id = `${list === 'studios' ? 's' : 'b'}-${Date.now().toString(36)}`;
+    const { error } = await sb.from('studio_items').insert({ id, list, label, phases: ['soir', 'matin'], position: pos });
+    if (error) { C.note = 'Ajout impossible.'; render(); return; }
+    await afterEdit();
+  });
+  onEditChange(render);
   await loadCycle();
-  let t = null; const refresh = () => { clearTimeout(t); t = setTimeout(loadCycle, 300); };
+  let t = null; const refresh = () => { clearTimeout(t); t = setTimeout(async () => { await loadItems(); await loadCycle(); }, 300); };
   sb.channel('studio')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'studio_checks' }, refresh)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'studio_signs' }, refresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'studio_cycles' }, refresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'studio_items' }, refresh)
     .subscribe();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
   return { rerender: render };
