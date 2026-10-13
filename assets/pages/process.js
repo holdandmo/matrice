@@ -1,4 +1,4 @@
-import { sb, $, esc, fmtDT, requireMember, processStatus } from '../core.js';
+import { sb, $, esc, fmtDT, requireMember, processStatus, refreshNotifications } from '../core.js';
 import { initPhotos, onPhotosChange, boardHTML, chip, GROUPS } from '../photos.js';
 import { KEYS_HTML, stepsHTML, RANGEMENT, planningHTML, fillInfo } from '../procedure.js';
 
@@ -11,8 +11,8 @@ const SECTIONS = [
   ['ouverture', 'L’ouverture', 'À l’arrivée, dans l’ordre. Toucher une étape pour voir la photo de référence.', () => `<div class="col open"><div class="band"><h2>Ouverture</h2><span>À l’arrivée, dans l’ordre</span></div>${stepsHTML('open')}</div>`],
   ['fermeture', 'La fermeture', 'Au départ, dans l’ordre. L’espace commun se ferme en dernier.', () => `<div class="col close"><div class="band"><h2>Fermeture</h2><span>Au départ, dans l’ordre</span></div>${stepsHTML('close')}</div>`],
   ['rangement', 'Les listes de rangement', 'Les mêmes points le soir (on range) et le lendemain matin (on vérifie). Comparer avec les photos de référence.', () => `<div class="rg"><div class="std s"><h3>Studios A et B ${chip(GROUPS.studios, 'Studios A, B et SAS')}</h3><ul>${RANGEMENT.studios.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div><div class="std b"><h3>Playback Solutions ${chip(GROUPS.bureau, 'Bureau Playback rangé')}</h3><ul>${RANGEMENT.playback.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div></div>`],
-  ['semaine', 'Les tâches de la semaine', 'Elles apparaissent automatiquement dans les tâches du jour, à l’accueil.', planningHTML],
-  ['outil', 'Utiliser la liste du jour', 'La page d’accueil est la liste à suivre chaque jour.', () => `<div class="howto"><div><b>Le soir, en fermant</b><span>Ranger, puis cocher chaque point dans la colonne « Soir ». La première case cochée met votre nom dans « Fait par ».</span></div><div><b>Le matin, en ouvrant</b><span>Vérifier que tout est resté rangé et cocher la colonne « Matin ». Faire les tâches du jour affichées.</span></div><div><b>Quand tout est coché</b><span>La liste est enregistrée dans l’historique avec les noms, puis repart à zéro pour le soir. Une liste oubliée est enregistrée « Incomplet ».</span></div></div>`],
+  ['semaine', 'Les tâches de la semaine', 'Elles apparaissent le jour venu en haut de l’accueil, avec une case à cocher quand c’est fait.', planningHTML],
+  ['outil', 'Utiliser la liste du jour', 'La page d’accueil est la liste à suivre chaque jour.', () => `<div class="howto"><div><b>Le soir, en fermant</b><span>Ranger, puis cocher chaque point dans la colonne « Soir ». La première case cochée met votre nom dans « Fait par ».</span></div><div><b>Le matin, en ouvrant</b><span>Vérifier que tout est resté rangé et cocher la colonne « Matin ». Faire les tâches du jour en haut de l’accueil et les cocher : votre nom s’enregistre.</span></div><div><b>Quand tout est coché</b><span>La liste est enregistrée dans l’historique avec les noms, puis repart à zéro pour le soir. Une liste oubliée est enregistrée « Incomplet ».</span></div></div>`],
   ['photos', 'Les photos de référence', 'Ce à quoi chaque endroit doit ressembler. Une photo manquante ou dépassée se remplace en la glissant sur son cadre.', () => `<div class="board">${boardHTML()}</div>`],
 ];
 
@@ -37,7 +37,7 @@ document.addEventListener('click', async (e) => {
   e.target.disabled = true;
   const { error } = await sb.from('process_acks').insert({ member_id: me.id, version: ps.version.version });
   if (error) { $('ack-err').textContent = 'La validation n’a pas été enregistrée. Réessayer.'; e.target.disabled = false; return; }
-  ps = await processStatus(me); render();
+  ps = await processStatus(me); render(); refreshNotifications(me);
   $('ack')?.scrollIntoView({ block: 'center' });
 });
 render();

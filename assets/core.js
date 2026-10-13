@@ -54,9 +54,30 @@ function shell() {
 }
 
 function renderNav(top, page, me) {
-  top.innerHTML = `<nav class="nav-in"><a class="brand" href="${ROOT}">Hold &amp; Motion</a><div class="tabs">${NAV.filter((n) => !n[3] || me.role === 'admin').map(([k, label, href]) => `<a href="${ROOT}${href}"${k === page ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div><div class="who"><span>${esc(me.name)}</span><button type="button" id="logout">Se déconnecter</button></div></nav>`;
+  top.innerHTML = `<nav class="nav-in"><a class="brand" href="${ROOT}">Hold &amp; Motion</a><div class="tabs">${NAV.filter((n) => !n[3] || me.role === 'admin').map(([k, label, href]) => `<a href="${ROOT}${href}"${k === page ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div><div class="who"><div class="notif-wrap"><button type="button" class="bell" id="bell" aria-label="Notifications" aria-expanded="false" aria-controls="notif">${BELL}</button><div class="notif" id="notif" hidden></div></div><span>${esc(me.name)}</span><button type="button" id="logout">Se déconnecter</button></div></nav>`;
   top.hidden = false;
   $('logout').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+  const bell = $('bell'), panel = $('notif');
+  bell.addEventListener('click', (e) => { e.stopPropagation(); panel.hidden = !panel.hidden; bell.setAttribute('aria-expanded', String(!panel.hidden)); });
+  document.addEventListener('click', (e) => { if (!panel.hidden && !e.target.closest('.notif-wrap')) { panel.hidden = true; bell.setAttribute('aria-expanded', 'false'); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) { panel.hidden = true; bell.focus(); } });
+  refreshNotifications(me);
+}
+
+const BELL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+
+// Notifications non lues (pour l'instant : l'Internal process à lire et valider)
+export async function refreshNotifications(me) {
+  const panel = $('notif'), bell = $('bell'); if (!panel) return;
+  const items = [];
+  const ps = await processStatus(me);
+  if (!ps.acked && ps.version) items.push({ href: `${ROOT}process/`, title: 'Internal process à lire et valider', sub: `Version ${ps.version.version} · ${ps.version.title}` });
+  bell.querySelector('.badge')?.remove();
+  if (items.length) bell.insertAdjacentHTML('beforeend', `<span class="badge">${items.length}</span>`);
+  bell.setAttribute('aria-label', items.length ? `Notifications : ${items.length} non lue${items.length > 1 ? 's' : ''}` : 'Notifications');
+  panel.innerHTML = '<h4>Notifications</h4>' + (items.length
+    ? items.map((n) => `<a class="unread" href="${n.href}"><b>${esc(n.title)}</b><small>${esc(n.sub)}</small></a>`).join('')
+    : '<p>Rien de nouveau.</p>');
 }
 
 // Résout quand la personne est connectée, rattachée à l'équipe et a choisi son mot de passe.
