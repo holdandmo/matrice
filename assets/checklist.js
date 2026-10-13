@@ -1,8 +1,8 @@
 // Listes de rangement : cycle soir → matin. Chaque coche garde le compte qui l'a faite.
 // En mode édition (admin) : modifier, supprimer, déplacer, ajouter des points (effet : aujourd'hui et la suite).
-import { sb, $, esc, fmt } from './core.js?v=6';
-import { chip, GROUPS } from './photos.js?v=6';
-import { isEditing, onEditChange, T } from './edit.js?v=6';
+import { sb, $, esc, fmt } from './core.js?v=7';
+import { chip, GROUPS } from './photos.js?v=7';
+import { isEditing, onEditChange, T } from './edit.js?v=7';
 
 const TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const META = {
@@ -38,8 +38,8 @@ function render() {
       + ids.map((id, k) => {
         const it = C.items[id];
         const label = ed
-          ? `<span class="lbl-ed" data-item="${id}" contenteditable="plaintext-only">${esc(it.label)}</span><span class="ed-tools">${k > 0 ? `<button type="button" class="ed-btn mv" data-mv="${id}|-1" title="Monter">↑</button>` : ''}${k < ids.length - 1 ? `<button type="button" class="ed-btn mv" data-mv="${id}|1" title="Descendre">↓</button>` : ''}<button type="button" class="ed-btn" data-rm="${id}" title="Supprimer ce point">×</button></span>`
-          : esc(it.label);
+          ? `<span class="lbl-ed" data-item="${id}" contenteditable="plaintext-only">${esc(it.label)}</span><span class="ed-tools">${k > 0 ? `<button type="button" class="ed-btn mv" data-mv="${id}|-1" title="Monter">↑</button>` : ''}${k < ids.length - 1 ? `<button type="button" class="ed-btn mv" data-mv="${id}|1" title="Descendre">↓</button>` : ''}<button type="button" class="ed-btn" data-rm="${id}" title="Supprimer ce point">×</button><button type="button" class="ed-btn ph-add" data-addph="item|${id}" data-label="${esc(it.label)}" data-slots="${(it.photo_slots || []).join(',')}" title="Ajouter une photo">📷+</button></span>${it.photo_slots?.length ? chip(it.photo_slots, it.label) : ''}`
+          : esc(it.label) + (it.photo_slots?.length ? chip(it.photo_slots, it.label) : '');
         return `<li class="row"><span>${label}</span>${box('soir', id, it.label)}${box('matin', id, it.label)}</li>`;
       }).join('')
       + `</ul>${ed ? `<form class="ed-add" data-add="${list}"><input type="text" placeholder="Nouveau point à contrôler" aria-label="Nouveau point (${meta.title})" required><button type="submit">Ajouter</button></form><p class="ed-note">Les changements s’appliquent dès aujourd’hui et pour la suite.</p>` : ''}</div>`;
@@ -119,6 +119,7 @@ export async function initChecklist(me) {
     await afterEdit();
   });
   onEditChange(render);
+  document.addEventListener('slotadded', (e) => { const { kind, id, slots } = e.detail; if (kind === 'item' && C.items[id]) { C.items[id].photo_slots = slots; render(); } });
   await loadCycle();
   let t = null; const refresh = () => { clearTimeout(t); t = setTimeout(async () => { await loadItems(); await loadCycle(); }, 300); };
   sb.channel('studio')

@@ -1,5 +1,5 @@
 // Historique (administrateur) : qui a coché quoi, quel jour ; tâches du jour ; journal des coches et décoches.
-import { sb, $, esc, fmtS, fmtDT, requireMember } from '../core.js?v=6';
+import { sb, $, esc, fmtS, fmtDT, requireMember } from '../core.js?v=7';
 
 const { isAdmin } = await requireMember();
 if (!isAdmin) { $('hist').innerHTML = '<p class="empty">Cette page est réservée à l’administrateur.</p>'; throw new Error('admin'); }

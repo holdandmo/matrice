@@ -1,4 +1,4 @@
-import { sb, $, esc, fmtDT, ROOT, requireMember } from '../core.js?v=6';
+import { sb, $, esc, fmtDT, ROOT, requireMember } from '../core.js?v=7';
 
 const { isAdmin } = await requireMember();
 if (!isAdmin) { $('adm').innerHTML = '<p class="empty">Cette page est réservée à l’administrateur.</p>'; throw new Error('not admin'); }

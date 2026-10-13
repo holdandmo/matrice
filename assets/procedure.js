@@ -1,7 +1,7 @@
 // Contenu de l'Internal process : étapes d'ouverture et de fermeture (table process_steps), infos clés, planning.
-import { sb, esc } from './core.js?v=6';
-import { chip, GROUPS } from './photos.js?v=6';
-import { isEditing, T } from './edit.js?v=6';
+import { sb, esc } from './core.js?v=7';
+import { chip, GROUPS } from './photos.js?v=7';
+import { isEditing, T } from './edit.js?v=7';
 
 // ---- infos sensibles chargées après connexion (code de la porte…)
 let INFO = null;
@@ -44,7 +44,7 @@ export function stepsHTML(section) {
     return `<div class="grp">${esc(g)}</div><ol>` + list.map((s, k) => {
       n++;
       if (ed) {
-        return `<li class="step"><span class="n">${n}</span><span class="x"><span class="lbl-ed" data-step="${s.id}" data-f="text" contenteditable="plaintext-only">${esc(s.text)}</span><span class="ed-tools">${k > 0 ? `<button type="button" class="ed-btn mv" data-smv="${s.id}|-1" title="Monter">↑</button>` : ''}${k < list.length - 1 ? `<button type="button" class="ed-btn mv" data-smv="${s.id}|1" title="Descendre">↓</button>` : ''}<button type="button" class="ed-btn" data-srm="${s.id}" title="Supprimer cette étape">×</button></span>`
+        return `<li class="step"><span class="n">${n}</span><span class="x"><span class="lbl-ed" data-step="${s.id}" data-f="text" contenteditable="plaintext-only">${esc(s.text)}</span><span class="ed-tools">${k > 0 ? `<button type="button" class="ed-btn mv" data-smv="${s.id}|-1" title="Monter">↑</button>` : ''}${k < list.length - 1 ? `<button type="button" class="ed-btn mv" data-smv="${s.id}|1" title="Descendre">↓</button>` : ''}<button type="button" class="ed-btn" data-srm="${s.id}" title="Supprimer cette étape">×</button><button type="button" class="ed-btn ph-add" data-addph="step|${s.id}" data-label="${esc(s.text.replace('{door_code}', ''))}" data-slots="${(s.photo_slots || []).join(',')}" title="Ajouter une photo">📷+</button></span>${s.photo_slots?.length ? chip(s.photo_slots, s.text.replace('{door_code}', '')) : ''}`
           + `<span class="d">Précision : <span class="lbl-ed" data-step="${s.id}" data-f="detail" contenteditable="plaintext-only">${esc(s.detail || '')}</span></span>`
           + `<span class="d">Alerte : <span class="lbl-ed" data-step="${s.id}" data-f="warn" contenteditable="plaintext-only">${esc(s.warn || '')}</span></span></span></li>`;
       }
@@ -59,6 +59,7 @@ export function stepsHTML(section) {
 
 // ---- édition des étapes (admin)
 export function bindStepEditing(rerender) {
+  document.addEventListener('slotadded', (e) => { const { kind, id, slots } = e.detail; const s = STEPS.find((x) => x.id === id); if (kind === 'step' && s) { s.photo_slots = slots; rerender(); } });
   document.addEventListener('focusout', async (e) => {
     const el = e.target.closest?.('[data-step][contenteditable]'); if (!el) return;
     const s = STEPS.find((x) => x.id === el.dataset.step); if (!s) return;

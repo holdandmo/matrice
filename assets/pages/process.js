@@ -1,12 +1,15 @@
-import { sb, $, fmtDT, requireMember, processStatus, refreshNotifications } from '../core.js?v=6';
-import { initPhotos, onPhotosChange, boardHTML } from '../photos.js?v=6';
-import { keysHTML, stepsHTML, planningHTML, rangementHTML, fillInfo, loadSteps, loadLists, bindStepEditing } from '../procedure.js?v=6';
-import { initEdit, isEditing, onEditChange, T } from '../edit.js?v=6';
+import { sb, $, fmtDT, requireMember, processStatus, refreshNotifications } from '../core.js?v=7';
+import { initPhotos, onPhotosChange, boardHTML } from '../photos.js?v=7';
+import { keysHTML, stepsHTML, planningHTML, rangementHTML, fillInfo, loadSteps, loadLists, bindStepEditing } from '../procedure.js?v=7';
+import { initEdit, isEditing, onEditChange, T } from '../edit.js?v=7';
 
 const { me, isAdmin } = await requireMember();
 await Promise.all([initEdit(isAdmin), loadSteps(), loadLists()]);
 let ps = await processStatus(me);
 const read = new Set();
+let foldOpen = true;
+try { foldOpen = localStorage.getItem('photosFold') !== '0'; } catch {}
+document.addEventListener('toggle', (e) => { if (!e.target.matches?.('details.fold')) return; foldOpen = e.target.open; try { localStorage.setItem('photosFold', foldOpen ? '1' : '0'); } catch {} e.target.querySelector('summary').textContent = foldOpen ? 'Replier les photos' : 'Afficher les photos'; }, true);
 
 const SECTIONS = [
   ['infos', 'Les infos à connaître', '', keysHTML],
@@ -14,14 +17,14 @@ const SECTIONS = [
   ['fermeture', 'La fermeture', 'Dans l’ordre. L’espace commun en dernier.', () => `<div class="col close"><div class="band">${T('process.band.close', 'Fermeture', 'h2')}</div>${stepsHTML('close')}</div>`],
   ['rangement', 'Les listes de rangement', 'Le soir on range, le matin on vérifie.', rangementHTML],
   ['semaine', 'Les tâches de la semaine', '', planningHTML],
-  ['photos', 'Les photos de référence', '', () => `<div class="board">${boardHTML()}</div>`],
+  ['photos', 'Les photos de référence', '', () => `<details class="fold"${foldOpen ? ' open' : ''}><summary>${foldOpen ? 'Replier les photos' : 'Afficher les photos'}</summary><div class="board">${boardHTML()}</div></details>`],
 ];
 
 function render() {
   const y = scrollY;
   const ed = isEditing();
   $('pv').innerHTML = T('process.intro', 'À lire en entier, puis à valider en bas de page.');
-  $('proc').innerHTML = SECTIONS.map(([k, title, lead, body], i) => `<section class="proc-sec" id="s-${k}"><h2><span class="num">${String(i + 1).padStart(2, '0')}</span>${T(`process.${k}.title`, title)}</h2>${T(`process.${k}.lead`, lead, 'p', 'lead')}${body()}${ps.acked || ed ? '' : `<label class="read-mark${read.has(k) ? ' on' : ''}"><input type="checkbox" data-read="${k}"${read.has(k) ? ' checked' : ''}> J’ai lu cette partie</label>`}</section>`).join('')
+  $('proc').innerHTML = SECTIONS.map(([k, title, lead, body], i) => `<section class="proc-sec" id="s-${k}"><h2>${T(`process.${k}.title`, title)}</h2>${T(`process.${k}.lead`, lead, 'p', 'lead')}${body()}${ps.acked || ed ? '' : `<label class="read-mark${read.has(k) ? ' on' : ''}"><input type="checkbox" data-read="${k}"${read.has(k) ? ' checked' : ''}> J’ai lu cette partie</label>`}</section>`).join('')
     + (ed ? '' : ps.acked
       ? `<div class="ack done"><h2>Lecture validée</h2><p class="prog-read">Version ${ps.version.version}, validée le ${fmtDT(ps.ackedAt)}.</p></div>`
       : `<div class="ack" id="ack"><h2>Valider ma lecture</h2><p class="prog-read">${read.size}/${SECTIONS.length} parties lues.</p>

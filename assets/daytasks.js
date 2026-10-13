@@ -1,8 +1,8 @@
 // Tâches du jour (jour calendaire) : une case par tâche, le compte qui coche est enregistré.
 // En mode édition (admin) : modifier, supprimer, ajouter (jours et moment). Effet : aujourd'hui et la suite.
-import { sb, $, esc, fmt } from './core.js?v=6';
-import { chip } from './photos.js?v=6';
-import { isEditing, onEditChange } from './edit.js?v=6';
+import { sb, $, esc, fmt } from './core.js?v=7';
+import { chip } from './photos.js?v=7';
+import { isEditing, onEditChange } from './edit.js?v=7';
 
 const TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
@@ -16,7 +16,7 @@ function render() {
   if (ed) {
     const all = Object.values(D.items).filter((i) => i.active).sort((a, b) => (a.moment === b.moment ? a.position - b.position : a.moment === 'matin' ? -1 : 1));
     el.innerHTML = `<div class="today-h"><b>Tâches du jour</b><span>toutes les tâches de la semaine</span></div><ul class="today-list">`
-      + all.map((it) => `<li><span></span><span class="lbl"><span class="lbl-ed" data-task="${it.id}" contenteditable="plaintext-only">${esc(it.label)}</span><button type="button" class="ed-btn" data-trm="${it.id}" title="Supprimer cette tâche">×</button></span><span class="when">${when(it)} · ${daysTxt(it.weekdays)}</span></li>`).join('')
+      + all.map((it) => `<li><span></span><span class="lbl"><span class="lbl-ed" data-task="${it.id}" contenteditable="plaintext-only">${esc(it.label)}</span><button type="button" class="ed-btn" data-trm="${it.id}" title="Supprimer cette tâche">×</button><button type="button" class="ed-btn ph-add" data-addph="item|${it.id}" data-label="${esc(it.label)}" data-slots="${(it.photo_slots || []).join(',')}" title="Ajouter une photo">📷+</button>${it.photo_slots?.length ? chip(it.photo_slots, it.label) : ''}</span><span class="when">${when(it)} · ${daysTxt(it.weekdays)}</span></li>`).join('')
       + `</ul><form class="ed-add" id="task-add"><input type="text" placeholder="Nouvelle tâche" aria-label="Nouvelle tâche" required><select aria-label="Moment"><option value="matin">Le matin</option><option value="journee">Dans la journée</option></select><span class="days">${DAYS.slice(0, 5).map((d, i) => `<label><input type="checkbox" value="${i + 1}">${d}</label>`).join('')}</span><button type="submit">Ajouter</button></form><p class="ed-note">Les changements s’appliquent dès aujourd’hui et pour la suite.</p>`;
     return;
   }
@@ -72,6 +72,7 @@ export async function initDayTasks() {
     if (!error) { await loadItems(); await load(); }
   });
   onEditChange(render);
+  document.addEventListener('slotadded', (e) => { const { kind, id, slots } = e.detail; if (kind === 'item' && D.items[id]) { D.items[id].photo_slots = slots; render(); } });
   await load();
   sb.channel('daytasks')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'studio_day_checks' }, () => load())

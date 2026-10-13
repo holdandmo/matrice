@@ -1,5 +1,5 @@
 // Photos de référence : emplacements, pastilles, galerie, ajout / remplacement (Supabase Storage).
-import { sb, $, esc, ROOT } from './core.js?v=6';
+import { sb, $, esc, ROOT } from './core.js?v=7';
 
 const BUCKET = 'studio-photos';
 export const CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>';
@@ -18,6 +18,27 @@ export const SLOTS = [
 ];
 export const S = {};
 SLOTS.forEach(([id, label, emb], i) => (S[id] = { id, label, n: i + 1, emb: emb ? `${ROOT}assets/photos/${emb}.jpg` : null, url: null, path: null }));
+// Emplacements ajoutés à la demande (photo d'une tâche, d'une étape…)
+export function ensureSlot(id, label) {
+  if (!S[id]) { SLOTS.push([id, label]); S[id] = { id, label, n: SLOTS.length, emb: null, url: null, path: null }; }
+  return S[id];
+}
+// Bouton « + photo » (mode édition) : ajoute un emplacement photo à une tâche, un point ou une étape
+const OWNER = { item: 'studio_items', step: 'process_steps' };
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-addph]'); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const [kind, id] = b.dataset.addph.split('|');
+  const slots = (b.dataset.slots || '').split(',').filter(Boolean);
+  const slot = `x-${kind}-${id}-${Date.now().toString(36)}`;
+  const label = b.dataset.label || 'Photo';
+  const next = [...slots, slot];
+  const { error } = await sb.from(OWNER[kind]).update({ photo_slots: next }).eq('id', id);
+  if (error) return;
+  ensureSlot(slot, label);
+  document.dispatchEvent(new CustomEvent('slotadded', { detail: { kind, id, slots: next } }));
+  openGal([slot], label);
+}, true);
 export const GROUPS = { studios: ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'sas'], bureau: ['bureau'], recyclage: ['recyclage'] };
 
 const listeners = [];
@@ -30,6 +51,7 @@ function nums(ids) {
   return out.join(', ');
 }
 export function chip(ids, title, inert) {
+  ids.forEach((i) => ensureSlot(i, String(title).replace(/<[^>]+>/g, '')));
   const miss = ids.some((i) => !src(S[i])); const tag = inert ? 'span' : 'button';
   return `<${tag} class="chip${miss ? ' missing' : ''}" data-ids="${ids.join(',')}" data-title="${esc(title)}" aria-label="Voir les photos : ${esc(String(title).replace(/<[^>]+>/g, ''))}">${CAM}${nums(ids)}${miss ? '<i class="dot" title="Photo à ajouter"></i>' : ''}</${tag}>`;
 }
@@ -41,10 +63,11 @@ export function boardHTML() {
 }
 
 export async function loadPhotos() {
-  const { data, error } = await sb.from('studio_photos').select('slot,path');
+  const { data, error } = await sb.from('studio_photos').select('slot,path,label');
   if (error) return;
   for (const id in S) { S[id].url = null; S[id].path = null; }
-  const rows = (data || []).filter((r) => S[r.slot]);
+  (data || []).forEach((r) => { if (!S[r.slot]) ensureSlot(r.slot, r.label || 'Photo'); });
+  const rows = data || [];
   if (rows.length) {
     const { data: signed } = await sb.storage.from(BUCKET).createSignedUrls(rows.map((r) => r.path), 60 * 60 * 12);
     rows.forEach((r, i) => { S[r.slot].path = r.path; S[r.slot].url = signed?.[i]?.signedUrl || null; });
@@ -94,6 +117,7 @@ function mountGallery() {
   frame.addEventListener('touchend', (e) => { if (tx == null) return; const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1); tx = null; });
 }
 
+export function openGallery(ids, title) { openGal(ids, title); }
 function openGal(ids, title) { G.ids = ids; G.i = 0; G.title = title; G.open = true; G.msg = ''; lastFocus = document.activeElement; gal.hidden = false; document.body.style.overflow = 'hidden'; drawGal(); $('gal-close').focus(); }
 function closeGal() { G.open = false; gal.hidden = true; document.body.style.overflow = ''; lastFocus?.focus?.(); }
 function drawGal() {
@@ -128,7 +152,7 @@ async function upload(file) {
     const up = await sb.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
     if (up.error) throw up.error;
     const old = S[slot].path;
-    const { error } = await sb.from('studio_photos').upsert({ slot, path, updated_at: new Date().toISOString() });
+    const { error } = await sb.from('studio_photos').upsert({ slot, path, label: S[slot].label, updated_at: new Date().toISOString() });
     if (error) throw error;
     if (old) sb.storage.from(BUCKET).remove([old]);
     G.msg = 'Photo enregistrée pour toute l’équipe.';

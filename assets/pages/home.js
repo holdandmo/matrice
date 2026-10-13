@@ -1,8 +1,8 @@
-import { requireMember } from '../core.js?v=6';
-import { initPhotos, onPhotosChange } from '../photos.js?v=6';
-import { initChecklist } from '../checklist.js?v=6';
-import { initDayTasks } from '../daytasks.js?v=6';
-import { initEdit, onEditChange, T } from '../edit.js?v=6';
+import { requireMember } from '../core.js?v=7';
+import { initPhotos, onPhotosChange } from '../photos.js?v=7';
+import { initChecklist } from '../checklist.js?v=7';
+import { initDayTasks } from '../daytasks.js?v=7';
+import { initEdit, onEditChange, T } from '../edit.js?v=7';
 
 const { me, isAdmin } = await requireMember();
 await initEdit(isAdmin);

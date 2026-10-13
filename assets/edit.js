@@ -1,5 +1,5 @@
 // Mode édition (administrateur) : textes modifiables ou masquables partout.
-import { sb, esc } from './core.js?v=6';
+import { sb, esc } from './core.js?v=7';
 
 const E = { on: false, admin: false, texts: {}, listeners: [] };
 export const isEditing = () => E.on;
