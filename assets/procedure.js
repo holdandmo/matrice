@@ -1,6 +1,6 @@
 // Contenu de l'Internal process : procédure d'ouverture et de fermeture.
-import { sb, esc } from './core.js';
-import { chip, GROUPS } from './photos.js';
+import { sb, esc } from './core.js?v=5';
+import { chip, GROUPS } from './photos.js?v=5';
 
 export const KEYS_HTML = `
   <div class="keys">

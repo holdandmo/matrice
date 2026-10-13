@@ -1,4 +1,4 @@
-import { sb, $, esc, fmtS, requireMember } from '../core.js';
+import { sb, $, esc, fmtS, requireMember } from '../core.js?v=5';
 
 await requireMember();
 const H = { days: 30, open: new Set(), rows: [] };

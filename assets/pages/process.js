@@ -1,6 +1,6 @@
-import { sb, $, esc, fmtDT, requireMember, processStatus, refreshNotifications } from '../core.js';
-import { initPhotos, onPhotosChange, boardHTML, chip, GROUPS } from '../photos.js';
-import { KEYS_HTML, stepsHTML, RANGEMENT, planningHTML, fillInfo } from '../procedure.js';
+import { sb, $, esc, fmtDT, requireMember, processStatus, refreshNotifications } from '../core.js?v=5';
+import { initPhotos, onPhotosChange, boardHTML, chip, GROUPS } from '../photos.js?v=5';
+import { KEYS_HTML, stepsHTML, RANGEMENT, planningHTML, fillInfo } from '../procedure.js?v=5';
 
 const { me } = await requireMember();
 let ps = await processStatus(me);

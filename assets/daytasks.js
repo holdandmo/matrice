@@ -1,6 +1,6 @@
 // Tâches du jour (calendrier) : une case par tâche, le nom est enregistré automatiquement.
-import { sb, $, esc, fmt } from './core.js';
-import { chip } from './photos.js';
+import { sb, $, esc, fmt } from './core.js?v=5';
+import { chip } from './photos.js?v=5';
 
 const TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const D = { me: null, day: null, items: {}, names: {}, checks: new Map(), busy: new Set(), err: '' };
@@ -9,9 +9,9 @@ const hm = (ts) => new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', m
 function render() {
   const el = $('today'); if (!D.day) return;
   const ids = (D.day.expected || []).filter((i) => D.items[i]);
-  if (!ids.length) { el.innerHTML = `<div class="today-h"><b>Aujourd’hui</b><span>${fmt(D.day.day)}</span></div><p class="today-none">Pas de tâche particulière aujourd’hui.</p>`; return; }
+  if (!ids.length) { el.innerHTML = `<div class="today-h"><b>Tâches du jour</b><span>${fmt(D.day.day)}</span></div><p class="today-none">Pas de tâche particulière aujourd’hui.</p>`; return; }
   const done = ids.filter((i) => D.checks.has(i)).length;
-  el.innerHTML = `<div class="today-h"><b>Aujourd’hui</b><span>${fmt(D.day.day)}</span><em>${done}/${ids.length}</em></div><ul class="today-list">`
+  el.innerHTML = `<div class="today-h"><b>Tâches du jour</b><span>${fmt(D.day.day)}</span><em>${done}/${ids.length}</em></div><ul class="today-list">`
     + ids.map((id) => {
       const it = D.items[id], c = D.checks.get(id);
       return `<li class="${c ? 'done' : ''}"><button class="ck tk" role="checkbox" aria-checked="${!!c}" data-tk="${id}" aria-label="${esc(it.label)}">${TICK}</button><span class="lbl">${esc(it.label)}${it.photo_slots?.length ? chip(it.photo_slots, it.label) : ''}</span><span class="when">${it.moment === 'matin' ? 'Le matin' : 'Dans la journée'}</span><span class="by">${c ? `${esc(D.names[c.by] || '')} · ${hm(c.at)}` : ''}</span></li>`;
